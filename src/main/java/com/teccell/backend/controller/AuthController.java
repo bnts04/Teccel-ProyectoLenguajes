@@ -1,9 +1,9 @@
 package com.teccell.backend.controller;
 
-import com.teccell.backend.dto.CambiarPasswordRequest;
-import com.teccell.backend.dto.LoginRequest;
-import com.teccell.backend.dto.LoginResponse;
-import com.teccell.backend.dto.UsuarioResponse;
+import com.teccell.backend.dto.request.CambiarPasswordRequest;
+import com.teccell.backend.dto.request.LoginRequest;
+import com.teccell.backend.dto.response.LoginResponse;
+import com.teccell.backend.dto.response.UsuarioResponse;
 import com.teccell.backend.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;

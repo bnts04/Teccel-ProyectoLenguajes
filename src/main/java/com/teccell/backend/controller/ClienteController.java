@@ -1,9 +1,9 @@
 package com.teccell.backend.controller;
 
-import com.teccell.backend.dto.ActualizarClienteRequest;
-import com.teccell.backend.dto.AdvertenciaDuplicadoResponse;
-import com.teccell.backend.dto.ClienteResponse;
-import com.teccell.backend.dto.CrearClienteRequest;
+import com.teccell.backend.dto.request.ActualizarClienteRequest;
+import com.teccell.backend.dto.response.AdvertenciaDuplicadoResponse;
+import com.teccell.backend.dto.response.ClienteResponse;
+import com.teccell.backend.dto.request.CrearClienteRequest;
 import com.teccell.backend.service.ClienteService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

@@ -1,8 +1,8 @@
 package com.teccell.backend.controller;
 
-import com.teccell.backend.dto.CrearTecnicoRequest;
-import com.teccell.backend.dto.RestablecerPasswordRequest;
-import com.teccell.backend.dto.UsuarioResponse;
+import com.teccell.backend.dto.request.CrearTecnicoRequest;
+import com.teccell.backend.dto.request.RestablecerPasswordRequest;
+import com.teccell.backend.dto.response.UsuarioResponse;
 import com.teccell.backend.service.UsuarioService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

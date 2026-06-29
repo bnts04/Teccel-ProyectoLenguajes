@@ -1,14 +1,11 @@
-package com.teccell.backend.dto;
+package com.teccell.backend.dto.request;
 
 import com.teccell.backend.enums.TipoEquipo;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-public record CrearEquipoRequest(
-
-        @NotNull(message = "El ID del cliente es obligatorio")
-        Long clienteId,
+public record ActualizarEquipoRequest(
 
         @NotNull(message = "El tipo de equipo es obligatorio")
         TipoEquipo tipo,
@@ -28,6 +25,8 @@ public record CrearEquipoRequest(
         String color,
 
         @Size(max = 300, message = "Las características físicas no deben superar los 300 caracteres")
-        String caracteristicasFisicas
+        String caracteristicasFisicas,
+
+        Boolean activo
 ) {
 }

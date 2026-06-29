@@ -1,8 +1,8 @@
 package com.teccell.backend.controller;
 
-import com.teccell.backend.dto.ActualizarEquipoRequest;
-import com.teccell.backend.dto.CrearEquipoRequest;
-import com.teccell.backend.dto.EquipoResponse;
+import com.teccell.backend.dto.request.ActualizarEquipoRequest;
+import com.teccell.backend.dto.request.CrearEquipoRequest;
+import com.teccell.backend.dto.response.EquipoResponse;
 import com.teccell.backend.service.EquipoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

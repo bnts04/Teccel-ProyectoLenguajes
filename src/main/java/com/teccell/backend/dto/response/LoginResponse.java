@@ -1,4 +1,4 @@
-package com.teccell.backend.dto;
+package com.teccell.backend.dto.response;
 
 public record LoginResponse(
         Long id,

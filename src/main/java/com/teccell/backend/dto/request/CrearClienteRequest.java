@@ -1,10 +1,10 @@
-package com.teccell.backend.dto;
+package com.teccell.backend.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-public record ActualizarClienteRequest(
+public record CrearClienteRequest(
 
         @NotBlank(message = "Los nombres son obligatorios")
         @Size(max = 80, message = "Los nombres no deben superar los 80 caracteres")

@@ -1,8 +1,8 @@
 package com.teccell.backend.service;
 
-import com.teccell.backend.dto.ActualizarEquipoRequest;
-import com.teccell.backend.dto.CrearEquipoRequest;
-import com.teccell.backend.dto.EquipoResponse;
+import com.teccell.backend.dto.request.ActualizarEquipoRequest;
+import com.teccell.backend.dto.request.CrearEquipoRequest;
+import com.teccell.backend.dto.response.EquipoResponse;
 import com.teccell.backend.entity.Cliente;
 import com.teccell.backend.entity.Equipo;
 import com.teccell.backend.enums.TipoEquipo;

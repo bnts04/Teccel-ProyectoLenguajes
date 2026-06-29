@@ -1,9 +1,9 @@
 package com.teccell.backend.service;
 
-import com.teccell.backend.dto.CambiarPasswordRequest;
-import com.teccell.backend.dto.LoginRequest;
-import com.teccell.backend.dto.LoginResponse;
-import com.teccell.backend.dto.UsuarioResponse;
+import com.teccell.backend.dto.request.CambiarPasswordRequest;
+import com.teccell.backend.dto.request.LoginRequest;
+import com.teccell.backend.dto.response.LoginResponse;
+import com.teccell.backend.dto.response.UsuarioResponse;
 import com.teccell.backend.entity.Usuario;
 import com.teccell.backend.exception.BusinessException;
 import com.teccell.backend.repository.UsuarioRepository;

@@ -1,9 +1,9 @@
 package com.teccell.backend.service;
 
-import com.teccell.backend.dto.ActualizarClienteRequest;
-import com.teccell.backend.dto.AdvertenciaDuplicadoResponse;
-import com.teccell.backend.dto.ClienteResponse;
-import com.teccell.backend.dto.CrearClienteRequest;
+import com.teccell.backend.dto.request.ActualizarClienteRequest;
+import com.teccell.backend.dto.response.AdvertenciaDuplicadoResponse;
+import com.teccell.backend.dto.response.ClienteResponse;
+import com.teccell.backend.dto.request.CrearClienteRequest;
 import com.teccell.backend.entity.Cliente;
 import com.teccell.backend.exception.BusinessException;
 import com.teccell.backend.exception.ResourceNotFoundException;
