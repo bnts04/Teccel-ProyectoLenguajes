@@ -10,6 +10,12 @@ import com.teccell.backend.dto.request.CambiarEstadoRequest;
 import com.teccell.backend.dto.request.RegistrarAvanceRequest;
 import com.teccell.backend.dto.request.RegistrarDiagnosticoRequest;
 import com.teccell.backend.dto.response.HistorialOrdenResponse;
+import com.teccell.backend.dto.request.CambiarFechaEstimadaRequest;
+import com.teccell.backend.dto.request.CambiarPrecioRequest;
+import com.teccell.backend.dto.request.CambiarPrioridadRequest;
+import com.teccell.backend.dto.request.CancelarOrdenRequest;
+import com.teccell.backend.dto.request.ReasignarOrdenRequest;
+import com.teccell.backend.dto.request.RegistrarEntregaRequest;
 
 import java.util.List;
 
@@ -73,4 +79,53 @@ public class OrdenController {
     public List<HistorialOrdenResponse> listarHistorial(@PathVariable Long id) {
         return ordenService.listarHistorial(id);
     }
+
+    @PutMapping("/{id}/precio")
+    public OrdenResponse cambiarPrecio(
+            @PathVariable Long id,
+            @Valid @RequestBody CambiarPrecioRequest request
+    ) {
+        return ordenService.cambiarPrecio(id, request);
+    }
+
+    @PutMapping("/{id}/fecha-estimada")
+    public OrdenResponse cambiarFechaEstimada(
+            @PathVariable Long id,
+            @Valid @RequestBody CambiarFechaEstimadaRequest request
+    ) {
+        return ordenService.cambiarFechaEstimada(id, request);
+    }
+
+    @PutMapping("/{id}/prioridad")
+    public OrdenResponse cambiarPrioridad(
+            @PathVariable Long id,
+            @Valid @RequestBody CambiarPrioridadRequest request
+    ) {
+        return ordenService.cambiarPrioridad(id, request);
+    }
+
+    @PostMapping("/{id}/entregar")
+    public OrdenResponse registrarEntrega(
+            @PathVariable Long id,
+            @Valid @RequestBody RegistrarEntregaRequest request
+    ) {
+        return ordenService.registrarEntrega(id, request);
+    }
+
+    @PutMapping("/{id}/cancelar")
+    public OrdenResponse cancelarOrden(
+            @PathVariable Long id,
+            @Valid @RequestBody CancelarOrdenRequest request
+    ) {
+        return ordenService.cancelarOrden(id, request);
+    }
+
+    @PutMapping("/{id}/reasignar")
+    public OrdenResponse reasignarOrden(
+            @PathVariable Long id,
+            @Valid @RequestBody ReasignarOrdenRequest request
+    ) {
+        return ordenService.reasignarOrden(id, request);
+    }
+
 }

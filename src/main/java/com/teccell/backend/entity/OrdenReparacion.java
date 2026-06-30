@@ -6,6 +6,8 @@ import com.teccell.backend.enums.TipoAccesorio;
 import jakarta.persistence.*;
 import lombok.*;
 
+import com.teccell.backend.enums.MotivoCancelacion;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -80,6 +82,36 @@ public class OrdenReparacion {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private EstadoOrden estado;
+
+    @Column(name = "nombre_recoge", length = 120)
+    private String nombreRecoge;
+
+    @Column(name = "dni_recoge", length = 15)
+    private String dniRecoge;
+
+    @Column(name = "observacion_entrega", length = 500)
+    private String observacionEntrega;
+
+    @Column(name = "fecha_entrega")
+    private LocalDateTime fechaEntrega;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tecnico_entrega_id")
+    private Usuario tecnicoEntrega;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "motivo_cancelacion", length = 40)
+    private MotivoCancelacion motivoCancelacion;
+
+    @Column(name = "descripcion_cancelacion", length = 500)
+    private String descripcionCancelacion;
+
+    @Column(name = "fecha_cancelacion")
+    private LocalDateTime fechaCancelacion;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_cancelacion_id")
+    private Usuario usuarioCancelacion;
 
     @Column(nullable = false)
     private Boolean activo;

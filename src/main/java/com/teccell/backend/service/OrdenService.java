@@ -1,9 +1,15 @@
 package com.teccell.backend.service;
 
 import com.teccell.backend.dto.request.CambiarEstadoRequest;
+import com.teccell.backend.dto.request.CambiarFechaEstimadaRequest;
+import com.teccell.backend.dto.request.CambiarPrecioRequest;
+import com.teccell.backend.dto.request.CambiarPrioridadRequest;
+import com.teccell.backend.dto.request.CancelarOrdenRequest;
 import com.teccell.backend.dto.request.CrearOrdenRequest;
+import com.teccell.backend.dto.request.ReasignarOrdenRequest;
 import com.teccell.backend.dto.request.RegistrarAvanceRequest;
 import com.teccell.backend.dto.request.RegistrarDiagnosticoRequest;
+import com.teccell.backend.dto.request.RegistrarEntregaRequest;
 import com.teccell.backend.dto.response.HistorialOrdenResponse;
 import com.teccell.backend.dto.response.OrdenResponse;
 import com.teccell.backend.entity.Cliente;
@@ -11,6 +17,7 @@ import com.teccell.backend.entity.Equipo;
 import com.teccell.backend.entity.OrdenReparacion;
 import com.teccell.backend.entity.Usuario;
 import com.teccell.backend.enums.EstadoOrden;
+import com.teccell.backend.enums.MotivoCancelacion;
 import com.teccell.backend.enums.PrioridadOrden;
 import com.teccell.backend.enums.RolUsuario;
 import com.teccell.backend.enums.TipoAccesorio;
@@ -27,6 +34,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -285,6 +293,243 @@ public class OrdenService {
         return historialService.listarHistorialPorOrden(id);
     }
 
+    @Transactional
+    public OrdenResponse cambiarPrecio(Long id, CambiarPrecioRequest request) {
+        Usuario usuarioActual = obtenerUsuarioActual();
+
+        OrdenReparacion orden = buscarOrdenPorId(id);
+
+        validarAccesoAOrden(usuarioActual, orden);
+        validarOrdenAbierta(orden);
+
+        BigDecimal precioAnterior = orden.getPrecioAcordado();
+        BigDecimal precioNuevo = request.nuevoPrecio();
+
+        if (precioAnterior.compareTo(precioNuevo) == 0) {
+            throw new BusinessException("El nuevo precio es igual al precio actual");
+        }
+
+        orden.setPrecioAcordado(precioNuevo);
+
+        OrdenReparacion actualizada = ordenRepository.save(orden);
+
+        historialService.registrarEvento(
+                actualizada,
+                usuarioActual,
+                TipoEventoHistorial.CAMBIO_PRECIO,
+                null,
+                null,
+                "Cambio de precio acordado. Motivo: " + limpiarObligatorio(request.motivo()),
+                "Precio anterior: " + precioAnterior,
+                "Precio nuevo: " + precioNuevo
+        );
+
+        return convertirAResponse(actualizada);
+    }
+
+    @Transactional
+    public OrdenResponse cambiarFechaEstimada(Long id, CambiarFechaEstimadaRequest request) {
+        Usuario usuarioActual = obtenerUsuarioActual();
+
+        OrdenReparacion orden = buscarOrdenPorId(id);
+
+        validarAccesoAOrden(usuarioActual, orden);
+        validarOrdenAbierta(orden);
+
+        Integer diasAnteriores = orden.getDiasEstimados();
+        LocalDate fechaAnterior = orden.getFechaEstimadaEntrega();
+
+        Integer nuevosDias = request.nuevosDiasEstimados();
+        LocalDate nuevaFecha = orden.getFechaIngreso().toLocalDate().plusDays(nuevosDias);
+
+        if (diasAnteriores.equals(nuevosDias)) {
+            throw new BusinessException("Los nuevos días estimados son iguales a los actuales");
+        }
+
+        orden.setDiasEstimados(nuevosDias);
+        orden.setFechaEstimadaEntrega(nuevaFecha);
+
+        OrdenReparacion actualizada = ordenRepository.save(orden);
+
+        historialService.registrarEvento(
+                actualizada,
+                usuarioActual,
+                TipoEventoHistorial.CAMBIO_FECHA,
+                null,
+                null,
+                "Cambio de fecha estimada. Motivo: " + limpiarObligatorio(request.motivo()),
+                "Días anteriores: " + diasAnteriores + ", fecha anterior: " + fechaAnterior,
+                "Nuevos días: " + nuevosDias + ", nueva fecha estimada: " + nuevaFecha
+        );
+
+        return convertirAResponse(actualizada);
+    }
+
+    @Transactional
+    public OrdenResponse cambiarPrioridad(Long id, CambiarPrioridadRequest request) {
+        Usuario usuarioActual = obtenerUsuarioActual();
+
+        OrdenReparacion orden = buscarOrdenPorId(id);
+
+        validarAccesoAOrden(usuarioActual, orden);
+        validarOrdenAbierta(orden);
+
+        PrioridadOrden prioridadAnterior = orden.getPrioridad();
+        PrioridadOrden prioridadNueva = request.nuevaPrioridad();
+
+        if (prioridadAnterior == prioridadNueva) {
+            throw new BusinessException("La nueva prioridad es igual a la prioridad actual");
+        }
+
+        orden.setPrioridad(prioridadNueva);
+
+        OrdenReparacion actualizada = ordenRepository.save(orden);
+
+        historialService.registrarEvento(
+                actualizada,
+                usuarioActual,
+                TipoEventoHistorial.CAMBIO_PRIORIDAD,
+                null,
+                null,
+                "Cambio de prioridad. Motivo: " + limpiarObligatorio(request.motivo()),
+                prioridadAnterior.name(),
+                prioridadNueva.name()
+        );
+
+        return convertirAResponse(actualizada);
+    }
+
+    @Transactional
+    public OrdenResponse registrarEntrega(Long id, RegistrarEntregaRequest request) {
+        Usuario usuarioActual = obtenerUsuarioActual();
+
+        OrdenReparacion orden = buscarOrdenPorId(id);
+
+        validarAccesoAOrden(usuarioActual, orden);
+        validarOrdenAbierta(orden);
+
+        if (orden.getEstado() != EstadoOrden.LISTO_PARA_RECOGER) {
+            throw new BusinessException("Solo se puede entregar una orden en estado LISTO_PARA_RECOGER");
+        }
+
+        orden.setNombreRecoge(limpiarObligatorio(request.nombreRecoge()));
+        orden.setDniRecoge(limpiarOpcional(request.dniRecoge()));
+        orden.setObservacionEntrega(limpiarOpcional(request.observacionEntrega()));
+        orden.setFechaEntrega(LocalDateTime.now());
+        orden.setTecnicoEntrega(usuarioActual);
+        orden.setEstado(EstadoOrden.ENTREGADO);
+
+        OrdenReparacion actualizada = ordenRepository.save(orden);
+
+        historialService.registrarEvento(
+                actualizada,
+                usuarioActual,
+                TipoEventoHistorial.ENTREGA,
+                EstadoOrden.LISTO_PARA_RECOGER,
+                EstadoOrden.ENTREGADO,
+                "Entrega registrada. Recoge: " + actualizada.getNombreRecoge(),
+                "Estado anterior: LISTO_PARA_RECOGER",
+                "Estado nuevo: ENTREGADO"
+        );
+
+        return convertirAResponse(actualizada);
+    }
+
+    @Transactional
+    public OrdenResponse cancelarOrden(Long id, CancelarOrdenRequest request) {
+        Usuario usuarioActual = obtenerUsuarioActual();
+
+        OrdenReparacion orden = buscarOrdenPorId(id);
+
+        validarAccesoAOrden(usuarioActual, orden);
+        validarOrdenAbierta(orden);
+
+        if (orden.getEstado() == EstadoOrden.LISTO_PARA_RECOGER) {
+            throw new BusinessException("No se recomienda cancelar una orden que ya está lista para recoger");
+        }
+
+        if (request.motivoCancelacion() == MotivoCancelacion.OTRO
+                && limpiarOpcional(request.descripcionCancelacion()) == null) {
+            throw new BusinessException("Debe describir el motivo cuando selecciona OTRO");
+        }
+
+        EstadoOrden estadoAnterior = orden.getEstado();
+
+        orden.setMotivoCancelacion(request.motivoCancelacion());
+        orden.setDescripcionCancelacion(limpiarOpcional(request.descripcionCancelacion()));
+        orden.setFechaCancelacion(LocalDateTime.now());
+        orden.setUsuarioCancelacion(usuarioActual);
+        orden.setEstado(EstadoOrden.CANCELADO);
+
+        OrdenReparacion actualizada = ordenRepository.save(orden);
+
+        String detalleCancelacion = "Motivo: " + request.motivoCancelacion().name();
+
+        if (actualizada.getDescripcionCancelacion() != null) {
+            detalleCancelacion += ". Descripción: " + actualizada.getDescripcionCancelacion();
+        }
+
+        historialService.registrarEvento(
+                actualizada,
+                usuarioActual,
+                TipoEventoHistorial.CANCELACION,
+                estadoAnterior,
+                EstadoOrden.CANCELADO,
+                "Orden cancelada",
+                estadoAnterior.name(),
+                detalleCancelacion
+        );
+
+        return convertirAResponse(actualizada);
+    }
+
+    @Transactional
+    public OrdenResponse reasignarOrden(Long id, ReasignarOrdenRequest request) {
+        Usuario usuarioActual = obtenerUsuarioActual();
+
+        if (usuarioActual.getRol() != RolUsuario.ADMIN) {
+            throw new BusinessException("Solo el ADMIN puede reasignar órdenes");
+        }
+
+        OrdenReparacion orden = buscarOrdenPorId(id);
+
+        validarOrdenAbierta(orden);
+
+        Usuario tecnicoAnterior = orden.getTecnicoResponsable();
+
+        Usuario nuevoTecnico = usuarioRepository.findById(request.nuevoTecnicoId())
+                .orElseThrow(() -> new ResourceNotFoundException("Técnico no encontrado con ID: " + request.nuevoTecnicoId()));
+
+        if (nuevoTecnico.getRol() != RolUsuario.TECNICO) {
+            throw new BusinessException("El usuario seleccionado no tiene rol TÉCNICO");
+        }
+
+        if (!Boolean.TRUE.equals(nuevoTecnico.getActivo())) {
+            throw new BusinessException("El técnico seleccionado se encuentra inactivo");
+        }
+
+        if (tecnicoAnterior.getId().equals(nuevoTecnico.getId())) {
+            throw new BusinessException("La orden ya está asignada a este técnico");
+        }
+
+        orden.setTecnicoResponsable(nuevoTecnico);
+
+        OrdenReparacion actualizada = ordenRepository.save(orden);
+
+        historialService.registrarEvento(
+                actualizada,
+                usuarioActual,
+                TipoEventoHistorial.REASIGNACION,
+                null,
+                null,
+                "Orden reasignada. Motivo: " + limpiarObligatorio(request.motivo()),
+                "Técnico anterior: " + tecnicoAnterior.getNombreCompleto(),
+                "Nuevo técnico: " + nuevoTecnico.getNombreCompleto()
+        );
+
+        return convertirAResponse(actualizada);
+    }
+
     private OrdenReparacion buscarOrdenPorId(Long id) {
         return ordenRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Orden no encontrada con ID: " + id));
@@ -333,11 +578,11 @@ public class OrdenService {
         EstadoOrden estadoActual = orden.getEstado();
 
         if (estadoNuevo == EstadoOrden.ENTREGADO) {
-            throw new BusinessException("La entrega formal se realizará en la Fase 8");
+            throw new BusinessException("Para entregar una orden use el endpoint de entrega formal");
         }
 
         if (estadoNuevo == EstadoOrden.CANCELADO) {
-            throw new BusinessException("La cancelación formal se realizará en la Fase 8");
+            throw new BusinessException("Para cancelar una orden use el endpoint de cancelación formal");
         }
 
         if (estadoActual == estadoNuevo) {
@@ -437,6 +682,26 @@ public class OrdenService {
                 .map(Enum::name)
                 .collect(Collectors.toSet());
 
+        Long tecnicoEntregaId = orden.getTecnicoEntrega() != null
+                ? orden.getTecnicoEntrega().getId()
+                : null;
+
+        String nombreTecnicoEntrega = orden.getTecnicoEntrega() != null
+                ? orden.getTecnicoEntrega().getNombreCompleto()
+                : null;
+
+        Long usuarioCancelacionId = orden.getUsuarioCancelacion() != null
+                ? orden.getUsuarioCancelacion().getId()
+                : null;
+
+        String nombreUsuarioCancelacion = orden.getUsuarioCancelacion() != null
+                ? orden.getUsuarioCancelacion().getNombreCompleto()
+                : null;
+
+        String motivoCancelacion = orden.getMotivoCancelacion() != null
+                ? orden.getMotivoCancelacion().name()
+                : null;
+
         return new OrdenResponse(
                 orden.getId(),
                 orden.getTicket(),
@@ -469,7 +734,20 @@ public class OrdenService {
                 orden.getPrioridad().name(),
                 orden.getEstado().name(),
                 orden.getActivo(),
-                orden.getFechaCreacion()
+                orden.getFechaCreacion(),
+
+                orden.getNombreRecoge(),
+                orden.getDniRecoge(),
+                orden.getObservacionEntrega(),
+                orden.getFechaEntrega(),
+                tecnicoEntregaId,
+                nombreTecnicoEntrega,
+
+                motivoCancelacion,
+                orden.getDescripcionCancelacion(),
+                orden.getFechaCancelacion(),
+                usuarioCancelacionId,
+                nombreUsuarioCancelacion
         );
     }
 

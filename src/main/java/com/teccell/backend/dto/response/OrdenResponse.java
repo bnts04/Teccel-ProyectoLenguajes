@@ -37,6 +37,19 @@ public record OrdenResponse(
         String prioridad,
         String estado,
         Boolean activo,
-        LocalDateTime fechaCreacion
+        LocalDateTime fechaCreacion,
+
+        String nombreRecoge,
+        String dniRecoge,
+        String observacionEntrega,
+        LocalDateTime fechaEntrega,
+        Long tecnicoEntregaId,
+        String nombreTecnicoEntrega,
+
+        String motivoCancelacion,
+        String descripcionCancelacion,
+        LocalDateTime fechaCancelacion,
+        Long usuarioCancelacionId,
+        String nombreUsuarioCancelacion
 ) {
 }
