@@ -27,7 +27,7 @@ public interface OrdenReparacionRepository extends JpaRepository<OrdenReparacion
 
     @Query("SELECT o FROM OrdenReparacion o WHERE o.equipo.cliente.dni LIKE %:ultimos4 AND o.activo = true")
     List<OrdenReparacion> findByClienteDniTerminaCon(@Param("ultimos4") String ultimos4);
-    
+
     @Query("SELECT o FROM OrdenReparacion o WHERE o.equipo.cliente.dni LIKE %:ultimos4 AND o.equipo.cliente.telefono = :telefono AND o.activo = true")
     List<OrdenReparacion> findByClienteDniTerminaConAndTelefono(@Param("ultimos4") String ultimos4, @Param("telefono") String telefono);
 }
