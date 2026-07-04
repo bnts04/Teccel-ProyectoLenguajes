@@ -1,5 +1,14 @@
 package com.teccell.backend.service;
 
+import com.teccell.backend.dto.response.PaginaResponse;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import com.teccell.backend.dto.request.CambiarEstadoRequest;
 import com.teccell.backend.dto.request.CambiarFechaEstimadaRequest;
 import com.teccell.backend.dto.request.CambiarPrecioRequest;
@@ -34,6 +43,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.math.BigDecimal;
 import java.security.SecureRandom;
 import java.time.LocalDate;
@@ -530,6 +540,66 @@ public class OrdenService {
         return convertirAResponse(actualizada);
     }
 
+    @Transactional(readOnly = true)
+    public PaginaResponse<OrdenResponse> buscarOrdenes(
+            EstadoOrden estado,
+            PrioridadOrden prioridad,
+            Long tecnicoId,
+            String cliente,
+            String ticket,
+            LocalDate fechaDesde,
+            LocalDate fechaHasta,
+            int page,
+            int size,
+            String sortBy,
+            String sortDir
+    ) {
+        Usuario usuarioActual = obtenerUsuarioActual();
+
+        int pagina = Math.max(page, 0);
+        int tamanio = size <= 0 ? 10 : Math.min(size, 100);
+
+        String campoOrdenamiento = validarCampoOrdenamiento(sortBy);
+
+        Sort.Direction direccion = "desc".equalsIgnoreCase(sortDir)
+                ? Sort.Direction.DESC
+                : Sort.Direction.ASC;
+
+        Pageable pageable = PageRequest.of(
+                pagina,
+                tamanio,
+                Sort.by(direccion, campoOrdenamiento)
+        );
+
+        Specification<OrdenReparacion> specification = construirSpecificationBusqueda(
+                usuarioActual,
+                estado,
+                prioridad,
+                tecnicoId,
+                cliente,
+                ticket,
+                fechaDesde,
+                fechaHasta
+        );
+
+        Page<OrdenReparacion> resultado = ordenRepository.findAll(specification, pageable);
+
+        List<OrdenResponse> contenido = resultado.getContent()
+                .stream()
+                .map(this::convertirAResponse)
+                .toList();
+
+        return new PaginaResponse<>(
+                contenido,
+                resultado.getNumber(),
+                resultado.getSize(),
+                resultado.getTotalElements(),
+                resultado.getTotalPages(),
+                resultado.isFirst(),
+                resultado.isLast()
+        );
+    }
+
     private OrdenReparacion buscarOrdenPorId(Long id) {
         return ordenRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Orden no encontrada con ID: " + id));
@@ -668,6 +738,119 @@ public class OrdenService {
 
         return usuarioRepository.findById(userDetails.getId())
                 .orElseThrow(() -> new BusinessException("El usuario autenticado ya no existe"));
+    }
+
+    private Specification<OrdenReparacion> construirSpecificationBusqueda(
+            Usuario usuarioActual,
+            EstadoOrden estado,
+            PrioridadOrden prioridad,
+            Long tecnicoId,
+            String cliente,
+            String ticket,
+            LocalDate fechaDesde,
+            LocalDate fechaHasta
+    ) {
+        return (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            root.fetch("equipo", JoinType.LEFT).fetch("cliente", JoinType.LEFT);
+            root.fetch("tecnicoResponsable", JoinType.LEFT);
+
+            if (query.getResultType() != Long.class && query.getResultType() != long.class) {
+                query.distinct(true);
+            }
+
+            if (usuarioActual.getRol() == RolUsuario.TECNICO) {
+                predicates.add(criteriaBuilder.equal(
+                        root.get("tecnicoResponsable").get("id"),
+                        usuarioActual.getId()
+                ));
+            } else if (tecnicoId != null) {
+                predicates.add(criteriaBuilder.equal(
+                        root.get("tecnicoResponsable").get("id"),
+                        tecnicoId
+                ));
+            }
+
+            if (estado != null) {
+                predicates.add(criteriaBuilder.equal(root.get("estado"), estado));
+            }
+
+            if (prioridad != null) {
+                predicates.add(criteriaBuilder.equal(root.get("prioridad"), prioridad));
+            }
+
+            if (ticket != null && !ticket.trim().isEmpty()) {
+                predicates.add(criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("ticket")),
+                        "%" + ticket.trim().toLowerCase() + "%"
+                ));
+            }
+
+            if (fechaDesde != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(
+                        root.get("fechaEstimadaEntrega"),
+                        fechaDesde
+                ));
+            }
+
+            if (fechaHasta != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(
+                        root.get("fechaEstimadaEntrega"),
+                        fechaHasta
+                ));
+            }
+
+            if (cliente != null && !cliente.trim().isEmpty()) {
+                Join<Object, Object> equipoJoin = root.join("equipo", JoinType.LEFT);
+                Join<Object, Object> clienteJoin = equipoJoin.join("cliente", JoinType.LEFT);
+
+                String valorCliente = "%" + cliente.trim().toLowerCase() + "%";
+
+                Predicate nombres = criteriaBuilder.like(
+                        criteriaBuilder.lower(clienteJoin.get("nombres")),
+                        valorCliente
+                );
+
+                Predicate apellidos = criteriaBuilder.like(
+                        criteriaBuilder.lower(clienteJoin.get("apellidos")),
+                        valorCliente
+                );
+
+                Predicate telefono = criteriaBuilder.like(
+                        criteriaBuilder.lower(clienteJoin.get("telefono")),
+                        valorCliente
+                );
+
+                Predicate dni = criteriaBuilder.like(
+                        criteriaBuilder.lower(clienteJoin.get("dni")),
+                        valorCliente
+                );
+
+                predicates.add(criteriaBuilder.or(nombres, apellidos, telefono, dni));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+    }
+
+    private String validarCampoOrdenamiento(String sortBy) {
+        if (sortBy == null || sortBy.trim().isEmpty()) {
+            return "fechaCreacion";
+        }
+
+        return switch (sortBy) {
+            case "id",
+                 "ticket",
+                 "estado",
+                 "prioridad",
+                 "fechaCreacion",
+                 "fechaIngreso",
+                 "fechaEstimadaEntrega",
+                 "precioAcordado" -> sortBy;
+
+            default -> "fechaCreacion";
+        };
     }
 
     private OrdenResponse convertirAResponse(OrdenReparacion orden) {

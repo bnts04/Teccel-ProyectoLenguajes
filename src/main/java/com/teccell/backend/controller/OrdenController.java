@@ -16,6 +16,12 @@ import com.teccell.backend.dto.request.CambiarPrioridadRequest;
 import com.teccell.backend.dto.request.CancelarOrdenRequest;
 import com.teccell.backend.dto.request.ReasignarOrdenRequest;
 import com.teccell.backend.dto.request.RegistrarEntregaRequest;
+import com.teccell.backend.dto.response.PaginaResponse;
+import com.teccell.backend.enums.EstadoOrden;
+import com.teccell.backend.enums.PrioridadOrden;
+
+import java.time.LocalDate;
+
 
 import java.util.List;
 
@@ -34,6 +40,35 @@ public class OrdenController {
     @GetMapping
     public List<OrdenResponse> listarOrdenes() {
         return ordenService.listarOrdenes();
+    }
+
+    @GetMapping("/buscar")
+    public PaginaResponse<OrdenResponse> buscarOrdenes(
+            @RequestParam(required = false) EstadoOrden estado,
+            @RequestParam(required = false) PrioridadOrden prioridad,
+            @RequestParam(required = false) Long tecnicoId,
+            @RequestParam(required = false) String cliente,
+            @RequestParam(required = false) String ticket,
+            @RequestParam(required = false) LocalDate fechaDesde,
+            @RequestParam(required = false) LocalDate fechaHasta,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "fechaCreacion") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir
+    ) {
+        return ordenService.buscarOrdenes(
+                estado,
+                prioridad,
+                tecnicoId,
+                cliente,
+                ticket,
+                fechaDesde,
+                fechaHasta,
+                page,
+                size,
+                sortBy,
+                sortDir
+        );
     }
 
     @GetMapping("/{id}")

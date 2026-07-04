@@ -6,7 +6,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -49,7 +48,6 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authenticationProvider(authenticationProvider())
                 .authorizeHttpRequests(auth -> auth
@@ -57,11 +55,19 @@ public class SecurityConfig {
                         .requestMatchers("/api/health").permitAll()
                         .requestMatchers("/api/publico/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .requestMatchers("/api/ordenes/vencidas").permitAll()
-                        .requestMatchers("/api/ordenes/proximas-entregas").permitAll()
-                        .requestMatchers("/api/equipos/*/reincidencia").permitAll()
+
                         .requestMatchers("/api/usuarios/**").hasRole("ADMIN")
-                        .requestMatchers("/api/dashboard/**").permitAll()
+
+                        .requestMatchers("/api/dashboard/admin").hasRole("ADMIN")
+                        .requestMatchers("/api/dashboard/carga-tecnicos").hasRole("ADMIN")
+                        .requestMatchers("/api/dashboard/tecnico/**").hasAnyRole("ADMIN", "TECNICO")
+                        .requestMatchers("/api/dashboard/proximas-entregas").hasAnyRole("ADMIN", "TECNICO")
+                        .requestMatchers("/api/dashboard/vencidas").hasAnyRole("ADMIN", "TECNICO")
+
+                        .requestMatchers("/api/ordenes/vencidas").hasAnyRole("ADMIN", "TECNICO")
+                        .requestMatchers("/api/ordenes/proximas-entregas").hasAnyRole("ADMIN", "TECNICO")
+                        .requestMatchers("/api/equipos/*/reincidencia").hasAnyRole("ADMIN", "TECNICO")
+
                         .anyRequest().authenticated()
                 )
                 .formLogin(AbstractHttpConfigurer::disable)

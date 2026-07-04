@@ -14,7 +14,6 @@ import com.teccell.backend.service.AlertaOrdenService;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "*")
 
 public class AlertaController {
  private final AlertaOrdenService alertaService;
